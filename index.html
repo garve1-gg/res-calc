@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="icon.png">
+  <title>Resistor Kalkulačka</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fafafa;
+      color: #333;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      box-sizing: border-box;
+    }
+    h1 {
+      margin-bottom: 20px;
+      font-size: 28px;
+      color: #007AFF;
+    }
+    label {
+      display: block;
+      margin: 12px 0 8px;
+      font-weight: bold;
+      color: #555;
+      font-size: 18px;
+    }
+    select, button {
+      padding: 12px;
+      border-radius: 6px;
+      border: 2px solid #007AFF;
+      width: 100%;
+      margin-top: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007AFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #005BB5;
+    }
+    .result {
+      margin-top: 30px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    /* Responzivní design pro mobilní zařízení */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+        margin-top: 20px;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      label {
+        font-size: 16px;
+      }
+      select, button {
+        font-size: 14px;
+        padding: 10px;
+      }
+      .result {
+        font-size: 18px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 22px;
+      }
+      label {
+        font-size: 14px;
+      }
+      select, button {
+        font-size: 12px;
+        padding: 8px;
+      }
+      .result {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Resistor Kalkulačka</h1>
+
+    <label for="bands">Počet pruhů:</label>
+    <select id="bands" onchange="generateInputs()">
+      <option value="4">4 pruhy</option>
+      <option value="5">5 pruhů</option>
+      <option value="6">6 pruhů</option>
+      <option value="7">7 pruhů</option>
+    </select>
+
+    <form id="resistor-form"></form>
+    <button onclick="calculate()">Spočítat</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    const colorCodes = {
+      'černá': 0, 'hnědá': 1, 'červená': 2, 'oranžová': 3, 'žlutá': 4,
+      'zelená': 5, 'modrá': 6, 'fialová': 7, 'šedá': 8, 'bílá': 9
+    };
+    const multiplierCodes = {
+      'černá': 1, 'hnědá': 10, 'červená': 100, 'oranžová': 1000, 'žlutá': 10000,
+      'zelená': 100000, 'modrá': 1000000, 'fialová': 10000000,
+      'šedá': 100000000, 'bílá': 1000000000, 'zlatá': 0.1, 'stříbrná': 0.01
+    };
+    const toleranceCodes = {
+      'hnědá': 1, 'červená': 2, 'zelená': 0.5, 'modrá': 0.25,
+      'fialová': 0.1, 'šedá': 0.05, 'zlatá': 5, 'stříbrná': 10
+    };
+    const tempCoefs = {
+      'hnědá': "100 ppm/K", 'červená': "50 ppm/K", 'oranžová': "15 ppm/K",
+      'žlutá': "25 ppm/K", 'modrá': "10 ppm/K", 'fialová': "5 ppm/K"
+    };
+    const colorList = Object.keys({...colorCodes, 'zlatá': '', 'stříbrná': ''});
+
+    function generateInputs() {
+      const form = document.getElementById("resistor-form");
+      const bandCount = parseInt(document.getElementById("bands").value);
+      form.innerHTML = "";
+
+      for (let i = 0; i < bandCount; i++) {
+        const label = document.createElement("label");
+        label.textContent = `Barva pruhu ${i + 1}:`;
+        form.appendChild(label);
+
+        const select = document.createElement("select");
+        select.name = `color${i}`;
+        for (const color of colorList) {
+          const option = document.createElement("option");
+          option.value = color;
+          option.textContent = color;
+          select.appendChild(option);
+        }
+        form.appendChild(select);
+      }
+    }
+
+    function calculate() {
+      const bandCount = parseInt(document.getElementById("bands").value);
+      const form = document.getElementById("resistor-form");
+      const colors = Array.from(form.elements).map(el => el.value);
+
+      let digits = 0;
+      let multiplier = 1;
+      let tolerance = "";
+      let tempCoef = "";
+
+      if (bandCount === 4) {
+        digits = (colorCodes[colors[0]] * 10 + colorCodes[colors[1]]) * multiplierCodes[colors[2]];
+        tolerance = toleranceCodes[colors[3]];
+      } else if (bandCount === 5 || bandCount === 6) {
+        digits = (colorCodes[colors[0]] * 100 + colorCodes[colors[1]] * 10 + colorCodes[colors[2]]) * multiplierCodes[colors[3]];
+        tolerance = toleranceCodes[colors[4]];
+        if (bandCount === 6) tempCoef = tempCoefs[colors[5]];
+      } else if (bandCount === 7) {
+        digits = (colorCodes[colors[0]] * 1000 + colorCodes[colors[1]] * 100 + colorCodes[colors[2]] * 10 + colorCodes[colors[3]]) * multiplierCodes[colors[4]];
+        tolerance = toleranceCodes[colors[5]];
+        tempCoef = tempCoefs[colors[6]];
+      }
+
+      let shortForm = digits >= 1e6 ? `${digits / 1e6}M` : digits >= 1e3 ? `${digits / 1e3}k` : digits;
+      document.getElementById("result").textContent = `Odpor: ${digits} Ω (${shortForm} Ω), Tolerance: ±${tolerance}%${tempCoef ? `, TC: ${tempCoef}` : ""}`;
+    }
+
+    // Inicializace vstupů
+    generateInputs();
+  </script>
+</body>
+</html>
